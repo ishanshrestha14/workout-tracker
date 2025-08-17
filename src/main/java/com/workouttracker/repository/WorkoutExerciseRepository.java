@@ -140,4 +140,16 @@ public interface WorkoutExerciseRepository extends JpaRepository<WorkoutExercise
      * Delete workout exercises by workout ID
      */
     void deleteByWorkoutId(Long workoutId);
+
+    /**
+     * Find workout exercises by user ID and completed date between (for reporting)
+     */
+    @Query("SELECT we FROM WorkoutExercise we " +
+           "WHERE we.workout.user.id = :userId " +
+           "AND we.workout.completedAt BETWEEN :startDate AND :endDate " +
+           "AND we.completed = true " +
+           "ORDER BY we.workout.completedAt ASC")
+    List<WorkoutExercise> findByWorkoutUserIdAndCompletedDateBetween(@Param("userId") Long userId,
+                                                                   @Param("startDate") LocalDateTime startDate,
+                                                                   @Param("endDate") LocalDateTime endDate);
 }

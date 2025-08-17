@@ -119,4 +119,12 @@ public interface WorkoutRepository extends JpaRepository<Workout, Long> {
      */
     @Query("SELECT w, COUNT(we) FROM Workout w LEFT JOIN w.workoutExercises we WHERE w.user.id = :userId GROUP BY w ORDER BY w.scheduledDateTime DESC")
     Page<Object[]> findWorkoutsWithExerciseCount(@Param("userId") Long userId, Pageable pageable);
+
+    /**
+     * Find workouts by user ID and scheduled date between (for reporting)
+     */
+    @Query("SELECT w FROM Workout w WHERE w.user.id = :userId AND w.scheduledDateTime BETWEEN :startDate AND :endDate ORDER BY w.scheduledDateTime ASC")
+    List<Workout> findByUserIdAndScheduledDateBetween(@Param("userId") Long userId, 
+                                                    @Param("startDate") LocalDateTime startDate, 
+                                                    @Param("endDate") LocalDateTime endDate);
 }
