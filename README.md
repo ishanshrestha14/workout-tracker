@@ -26,7 +26,8 @@ A Spring Boot REST API for tracking workouts, exercises, and fitness progress, s
 - User registration and login (by username or email)
 - Password hashing with BCrypt
 - Profile updates and password change
-- Method-level authorization with `@PreAuthorize`
+- Role-based access control (`USER` and `ADMIN`) with `@PreAuthorize`
+- Admin-only user management endpoints
 
 ### 💪 Exercise Catalog
 
@@ -49,6 +50,7 @@ A Spring Boot REST API for tracking workouts, exercises, and fitness progress, s
 
 - Progress reports for any date range, plus weekly and monthly reports
 - Workout, exercise and muscle-group statistics
+- PDF export of progress reports
 - CSV export of workout data
 
 ### 🔍 Platform
@@ -67,6 +69,7 @@ A Spring Boot REST API for tracking workouts, exercises, and fitness progress, s
 - **Spring Security** - Authentication and authorization
 - **Spring Data JPA / Hibernate** - Data access and ORM
 - **Flyway** - Database migrations
+- **Apache PDFBox** - PDF report generation
 - **JWT (jjwt)** - Stateless authentication
 - **H2 Database** - In-memory database for development and tests
 - **PostgreSQL** - Production database
@@ -264,6 +267,15 @@ GET /api/v1/reports/progress?startDate=2026-01-01T00:00:00&endDate=2026-01-31T23
 Authorization: Bearer <jwt-token>
 ```
 
+#### Export Progress Report (PDF)
+
+```http
+GET /api/v1/reports/export/pdf?startDate=2026-01-01T00:00:00&endDate=2026-01-31T23:59:59
+Authorization: Bearer <jwt-token>
+```
+
+Returns an `application/pdf` download with a summary of the period, a table of workouts and the best performance per exercise.
+
 #### Export Workout Data (CSV)
 
 ```http
@@ -289,6 +301,7 @@ The schema is defined in Flyway migrations under `src/main/resources/db/migratio
 - Personal information (name, email, date of birth)
 - Physical attributes (height, weight, gender)
 - Activity level
+- Role (`USER` or `ADMIN`)
 - Authentication credentials
 
 #### Exercise
@@ -320,6 +333,13 @@ The schema is defined in Flyway migrations under `src/main/resources/db/migratio
 - Signing key supplied through the `JWT_SECRET` environment variable; nothing is hardcoded
 - Configurable token expiration (default: 24 hours)
 
+### Roles
+
+- Everyone who registers is a `USER`; admins also have every `USER` permission
+- `/users/**` and `GET /reports/user/{userId}` are admin-only
+- The first admin is created on startup from `ADMIN_USERNAME`, `ADMIN_EMAIL` and `ADMIN_PASSWORD` (at least 12 characters). An existing account with that username is never promoted, so registering the name first does not grant admin rights
+- To promote another user: `UPDATE users SET role = 'ADMIN' WHERE username = '...';`
+
 ### Password Security
 
 - BCrypt password hashing
@@ -341,16 +361,20 @@ All secrets come from environment variables. Copy `.env.example` to `.env` for d
 | `DATABASE_URL`           | With `production`       | e.g. `jdbc:postgresql://localhost:5432/workout_tracker`             |
 | `DATABASE_USERNAME`      | With `production`       | Database user                                                       |
 | `DATABASE_PASSWORD`      | With `production`       | Database password                                                   |
+| `ADMIN_USERNAME`         | No                      | Creates this admin account on startup if it does not exist          |
+| `ADMIN_EMAIL`            | With `ADMIN_USERNAME`   | Email for the bootstrap admin                                       |
+| `ADMIN_PASSWORD`         | With `ADMIN_USERNAME`   | Password for the bootstrap admin (min. 12 characters)               |
 
 ## 🧪 Testing
 
-The project has 52 automated tests:
+The project has 73 automated tests:
 
-- **Service unit tests** (JUnit 5 + Mockito): authentication, workouts, users, CSV export
+- **Service unit tests** (JUnit 5 + Mockito): authentication, workouts, users, admin bootstrap, CSV export
+- **PDF tests**: generated documents are parsed back to check content, page breaks, truncation and character fallback
 - **JWT tests**: valid tokens, forged signatures, tampered payloads, expired and malformed tokens
 - **Controller tests** (`@WebMvcTest` with the real security configuration): request validation, status codes, response bodies
-- **Authorization tests**: a `USER` is forbidden from the `ADMIN`-only user report endpoint
-- **Integration test** (`@SpringBootTest`): runs the Flyway migrations, then registers, logs in, and calls protected endpoints with a real JWT
+- **Authorization tests**: a `USER` is forbidden from `ADMIN` endpoints, anonymous callers get 401, admins are allowed
+- **Integration tests** (`@SpringBootTest`, including a real HTTP server): Flyway migrations, register/login with a real JWT, error status codes, and the admin bootstrap
 
 ### Running Tests
 
