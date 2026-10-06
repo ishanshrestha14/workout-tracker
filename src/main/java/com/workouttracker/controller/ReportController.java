@@ -1,6 +1,8 @@
 package com.workouttracker.controller;
 
 import com.workouttracker.dto.response.ReportResponse;
+import com.workouttracker.service.CsvExportService;
+import com.workouttracker.service.PdfReportService;
 import com.workouttracker.service.ReportService;
 import com.workouttracker.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -14,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -21,6 +24,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -38,6 +42,12 @@ public class ReportController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private CsvExportService csvExportService;
+
+    @Autowired
+    private PdfReportService pdfReportService;
 
     @Operation(summary = "Generate progress report", 
                description = "Generate a comprehensive progress report for a specific time period")
@@ -308,18 +318,28 @@ public class ReportController {
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
         
         try {
+            if (startDate.isAfter(endDate)) {
+                Map<String, String> errorResponse = new HashMap<>();
+                errorResponse.put("error", "Invalid date range");
+                errorResponse.put("message", "Start date must be before end date");
+                return ResponseEntity.badRequest().body(errorResponse);
+            }
+
             Long userId = userService.getCurrentUserEntity().getId();
             
             logger.info("Exporting PDF report for user {} from {} to {}", userId, startDate, endDate);
             
-            // TODO: Implement PDF export functionality
-            // This would require adding PDF generation library (like iText or FOP)
+            ReportResponse report = reportService.generateProgressReport(userId, startDate, endDate);
+            byte[] pdf = pdfReportService.render(report);
             
-            Map<String, String> response = new HashMap<>();
-            response.put("message", "PDF export functionality is not yet implemented");
-            response.put("reportUrl", "/reports/progress?startDate=" + startDate + "&endDate=" + endDate);
+            String filename = String.format("progress-report_%s_%s.pdf", startDate.toLocalDate(), endDate.toLocalDate());
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
             
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(pdf);
             
         } catch (Exception e) {
             logger.error("Error exporting PDF report: ", e);
@@ -352,19 +372,23 @@ public class ReportController {
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
         
         try {
+            if (startDate.isAfter(endDate)) {
+                Map<String, String> errorResponse = new HashMap<>();
+                errorResponse.put("error", "Invalid date range");
+                errorResponse.put("message", "Start date must be before end date");
+                return ResponseEntity.badRequest().body(errorResponse);
+            }
+
             Long userId = userService.getCurrentUserEntity().getId();
             
             logger.info("Exporting CSV report for user {} from {} to {}", userId, startDate, endDate);
             
-            // TODO: Implement CSV export functionality
-            // This would generate actual CSV content
+            String csvContent = csvExportService.exportWorkouts(userId, startDate, endDate);
             
-            String csvContent = "Date,Exercise,Sets,Reps,Weight,Duration,Calories\n";
-            csvContent += "# CSV export functionality will be implemented here\n";
-            
+            String filename = String.format("workouts_%s_%s.csv", startDate.toLocalDate(), endDate.toLocalDate());
             HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.TEXT_PLAIN);
-            headers.setContentDispositionFormData("attachment", "workout-report.csv");
+            headers.setContentType(new MediaType("text", "csv", StandardCharsets.UTF_8));
+            headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
             
             return ResponseEntity.ok()
                     .headers(headers)

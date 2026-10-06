@@ -9,16 +9,21 @@ spring:
 
   # Database Configuration - H2 for development
   datasource:
-    url: jdbc:h2:mem:workout_tracker
+    url: jdbc:h2:mem:workout_tracker;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
     driver-class-name: org.h2.Driver
     username: sa
-    password: password
+    password:
+
+  # Schema is managed by Flyway (src/main/resources/db/migration);
+  # Hibernate only checks that the entities match it.
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
 
   # JPA Configuration
   jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: validate
     show-sql: true
     properties:
       hibernate:
@@ -30,13 +35,22 @@ spring:
       enabled: true
       path: /h2-console
       settings:
-        web-allow-others: true
+        web-allow-others: false
         trace: false
 
 # JWT Configuration
+# JWT_SECRET is required: a Base64-encoded key of at least 256 bits,
+# e.g. generated with `openssl rand -base64 64`
 jwt:
-  secret: bXlTZWNyZXRLZXkxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MA
-  expiration: 86400000 # 24 hours in milliseconds
+  secret: ${JWT_SECRET}
+  expiration: ${JWT_EXPIRATION:86400000} # 24 hours in milliseconds
+
+# Optional initial admin account, created on startup if it does not exist yet
+app:
+  admin:
+    username: ${ADMIN_USERNAME:}
+    email: ${ADMIN_EMAIL:}
+    password: ${ADMIN_PASSWORD:}
 
 # OpenAPI Documentation
 springdoc:
@@ -60,24 +74,17 @@ spring:
       on-profile: production
 
   datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/workout_tracker}
+    url: ${DATABASE_URL}
     driver-class-name: org.postgresql.Driver
-    username: postgres
-    password: postgres123
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
 
   jpa:
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
-    hibernate:
-      ddl-auto: validate
     show-sql: false
 
   h2:
     console:
       enabled: false
-
-jwt:
-  secret: ${JWT_SECRET:myProductionSecretKey123456789012345678901234567890}
-  expiration: ${JWT_EXPIRATION:86400000}
 
 logging:
   level:

@@ -83,7 +83,7 @@ public interface WorkoutRepository extends JpaRepository<Workout, Long> {
      * Get workout statistics for user
      */
     @Query("SELECT COUNT(w), AVG(w.durationMinutes), SUM(w.totalCaloriesBurned) FROM Workout w WHERE w.user.id = :userId AND w.status = 'COMPLETED'")
-    Object[] getWorkoutStatsByUserId(@Param("userId") Long userId);
+    List<Object[]> getWorkoutStatsByUserId(@Param("userId") Long userId);
 
     /**
      * Find most recent completed workouts

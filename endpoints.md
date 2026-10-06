@@ -92,6 +92,28 @@ Analytics & Statistics
 
 
 
+## 📈 Report Controller (/reports)
+
+Dates are ISO date-times (`yyyy-MM-ddTHH:mm:ss`).
+
+- `GET /reports/progress?startDate={}&endDate={}` - Progress report for a date range
+- `GET /reports/weekly` - Progress report for the past week
+- `GET /reports/monthly` - Progress report for the past month
+- `GET /reports/analytics?startDate={}&endDate={}` - Performance analytics
+- `GET /reports/export/pdf?startDate={}&endDate={}` - Download progress report as PDF
+- `GET /reports/export/csv?startDate={}&endDate={}` - Download workout data as CSV
+- `GET /reports/user/{userId}?startDate={}&endDate={}` - Progress report for any user (**ADMIN**)
+
+
+
+## 👥 User Controller (/users) — ADMIN only
+
+- `GET /users` - List all users
+- `GET /users/{userId}` - Get user by ID
+- `GET /users/stats` - User counts (total, active, inactive)
+
+
+
 ## 📊 Summary
 #### Total API Endpoints: 50+
 

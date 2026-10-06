@@ -287,7 +287,8 @@ public class WorkoutService {
     public WorkoutStats getWorkoutStats() {
         User currentUser = userService.getCurrentUserEntity();
         
-        Object[] stats = workoutRepository.getWorkoutStatsByUserId(currentUser.getId());
+        // An aggregate query always returns exactly one row
+        Object[] stats = workoutRepository.getWorkoutStatsByUserId(currentUser.getId()).get(0);
         
         long totalWorkouts = stats[0] != null ? ((Number) stats[0]).longValue() : 0;
         double avgDuration = stats[1] != null ? ((Number) stats[1]).doubleValue() : 0;

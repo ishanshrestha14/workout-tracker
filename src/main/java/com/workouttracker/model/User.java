@@ -84,6 +84,10 @@ public class User implements UserDetails {
     @Column(name = "enabled")
     private boolean enabled = true;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", nullable = false, length = 20)
+    private Role role = Role.USER;
+
     // One-to-Many relationship with Workout
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Workout> workouts;
@@ -111,6 +115,10 @@ public class User implements UserDetails {
     // UserDetails implementation
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
+        // Admins can also use every regular-user endpoint
+        if (role == Role.ADMIN) {
+            return List.of(new SimpleGrantedAuthority("ROLE_USER"), new SimpleGrantedAuthority("ROLE_ADMIN"));
+        }
         return List.of(new SimpleGrantedAuthority("ROLE_USER"));
     }
 
@@ -257,6 +265,14 @@ public class User implements UserDetails {
         this.enabled = enabled;
     }
 
+    public Role getRole() {
+        return role;
+    }
+
+    public void setRole(Role role) {
+        this.role = role;
+    }
+
     public Set<Workout> getWorkouts() {
         return workouts;
     }
@@ -268,6 +284,10 @@ public class User implements UserDetails {
     // Enums
     public enum Gender {
         MALE, FEMALE, OTHER
+    }
+
+    public enum Role {
+        USER, ADMIN
     }
 
     public enum ActivityLevel {

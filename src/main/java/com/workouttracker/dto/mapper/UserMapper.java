@@ -30,6 +30,7 @@ public class UserMapper {
         response.setCreatedAt(user.getCreatedAt());
         response.setUpdatedAt(user.getUpdatedAt());
         response.setEnabled(user.isEnabled());
+        response.setRole(user.getRole());
 
         return response;
     }

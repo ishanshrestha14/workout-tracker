@@ -152,4 +152,18 @@ public interface WorkoutExerciseRepository extends JpaRepository<WorkoutExercise
     List<WorkoutExercise> findByWorkoutUserIdAndCompletedDateBetween(@Param("userId") Long userId,
                                                                    @Param("startDate") LocalDateTime startDate,
                                                                    @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Find workout exercises (with workout and exercise loaded) for workouts scheduled
+     * in a date range, in the order they should appear in a CSV export
+     */
+    @Query("SELECT we FROM WorkoutExercise we " +
+           "JOIN FETCH we.workout w " +
+           "JOIN FETCH we.exercise e " +
+           "WHERE w.user.id = :userId " +
+           "AND w.scheduledDateTime BETWEEN :startDate AND :endDate " +
+           "ORDER BY w.scheduledDateTime ASC, w.id ASC, we.exerciseOrder ASC")
+    List<WorkoutExercise> findForExportByUserIdAndScheduledDateBetween(@Param("userId") Long userId,
+                                                                     @Param("startDate") LocalDateTime startDate,
+                                                                     @Param("endDate") LocalDateTime endDate);
 }
