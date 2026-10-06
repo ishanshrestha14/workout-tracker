@@ -106,3 +106,6 @@ spring-shell.log
 *.bak
 *.swp
 *~.nib
+
+# Local environment variables (secrets)
+.env
