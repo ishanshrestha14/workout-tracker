@@ -9,16 +9,21 @@ spring:
 
   # Database Configuration - H2 for development
   datasource:
-    url: jdbc:h2:mem:workout_tracker
+    url: jdbc:h2:mem:workout_tracker;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
     driver-class-name: org.h2.Driver
     username: sa
     password:
 
+  # Schema is managed by Flyway (src/main/resources/db/migration);
+  # Hibernate only checks that the entities match it.
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
   # JPA Configuration
   jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: validate
     show-sql: true
     properties:
       hibernate:
@@ -68,9 +73,6 @@ spring:
     password: ${DATABASE_PASSWORD}
 
   jpa:
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
-    hibernate:
-      ddl-auto: validate
     show-sql: false
 
   h2:
