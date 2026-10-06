@@ -45,6 +45,13 @@ jwt:
   secret: ${JWT_SECRET}
   expiration: ${JWT_EXPIRATION:86400000} # 24 hours in milliseconds
 
+# Optional initial admin account, created on startup if it does not exist yet
+app:
+  admin:
+    username: ${ADMIN_USERNAME:}
+    email: ${ADMIN_EMAIL:}
+    password: ${ADMIN_PASSWORD:}
+
 # OpenAPI Documentation
 springdoc:
   api-docs:
