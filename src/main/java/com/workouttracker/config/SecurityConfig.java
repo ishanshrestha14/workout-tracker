@@ -71,6 +71,9 @@ public class SecurityConfig {
             .authorizeHttpRequests(authz -> authz
                 // Public endpoints
                 .requestMatchers("/auth/**").permitAll()
+                
+                // Spring's error page, so failed requests keep their real status (e.g. 400) instead of 401
+                .requestMatchers("/error").permitAll()
                 .requestMatchers("/exercises/public/**").permitAll()
                 
                 // Swagger/OpenAPI endpoints
@@ -85,8 +88,8 @@ public class SecurityConfig {
                 // Actuator health endpoint
                 .requestMatchers("/actuator/health").permitAll()
                 
-                // User endpoints (for testing - can be restricted later)
-                .requestMatchers("/users/**").permitAll()
+                // User management is admin-only
+                .requestMatchers("/users/**").hasRole("ADMIN")
                 
                 // All other endpoints require authentication
                 .anyRequest().authenticated()
