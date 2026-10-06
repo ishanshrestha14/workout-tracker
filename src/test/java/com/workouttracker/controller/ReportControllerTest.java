@@ -7,6 +7,7 @@ import com.workouttracker.security.JwtAuthenticationEntryPoint;
 import com.workouttracker.security.JwtUtils;
 import com.workouttracker.security.UserDetailsServiceImpl;
 import com.workouttracker.service.CsvExportService;
+import com.workouttracker.service.PdfReportService;
 import com.workouttracker.service.ReportService;
 import com.workouttracker.service.UserService;
 import org.junit.jupiter.api.Test;
@@ -37,6 +38,7 @@ class ReportControllerTest {
 
     private static final String ADMIN_USER_REPORT = "/reports/user/42";
     private static final String CSV_EXPORT = "/reports/export/csv";
+    private static final String PDF_EXPORT = "/reports/export/pdf";
     private static final String START = "2026-10-01T00:00:00";
     private static final String END = "2026-10-31T23:59:59";
 
@@ -51,6 +53,9 @@ class ReportControllerTest {
 
     @MockBean
     private CsvExportService csvExportService;
+
+    @MockBean
+    private PdfReportService pdfReportService;
 
     @MockBean
     private JwtUtils jwtUtils;
@@ -99,6 +104,35 @@ class ReportControllerTest {
                 .andExpect(header().string("Content-Disposition",
                         "attachment; filename=\"workouts_2026-10-01_2026-10-31.csv\""))
                 .andExpect(content().string("Date,Workout\r\n"));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void pdfExportReturnsDownloadablePdf() throws Exception {
+        User user = new User("alice", "alice@example.com", "hashed");
+        user.setId(1L);
+        ReportResponse report = new ReportResponse();
+        byte[] pdf = "%PDF-1.7 test".getBytes();
+        when(userService.getCurrentUserEntity()).thenReturn(user);
+        when(reportService.generateProgressReport(1L, LocalDateTime.parse(START), LocalDateTime.parse(END)))
+                .thenReturn(report);
+        when(pdfReportService.render(report)).thenReturn(pdf);
+
+        mockMvc.perform(get(PDF_EXPORT).param("startDate", START).param("endDate", END))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("application/pdf"))
+                .andExpect(header().string("Content-Disposition",
+                        "attachment; filename=\"progress-report_2026-10-01_2026-10-31.pdf\""))
+                .andExpect(content().bytes(pdf));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void pdfExportRejectsStartDateAfterEndDate() throws Exception {
+        mockMvc.perform(get(PDF_EXPORT).param("startDate", END).param("endDate", START))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(pdfReportService);
     }
 
     @Test

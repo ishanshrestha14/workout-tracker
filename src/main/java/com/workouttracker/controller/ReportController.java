@@ -2,6 +2,7 @@ package com.workouttracker.controller;
 
 import com.workouttracker.dto.response.ReportResponse;
 import com.workouttracker.service.CsvExportService;
+import com.workouttracker.service.PdfReportService;
 import com.workouttracker.service.ReportService;
 import com.workouttracker.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -44,6 +45,9 @@ public class ReportController {
 
     @Autowired
     private CsvExportService csvExportService;
+
+    @Autowired
+    private PdfReportService pdfReportService;
 
     @Operation(summary = "Generate progress report", 
                description = "Generate a comprehensive progress report for a specific time period")
@@ -314,18 +318,28 @@ public class ReportController {
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
         
         try {
+            if (startDate.isAfter(endDate)) {
+                Map<String, String> errorResponse = new HashMap<>();
+                errorResponse.put("error", "Invalid date range");
+                errorResponse.put("message", "Start date must be before end date");
+                return ResponseEntity.badRequest().body(errorResponse);
+            }
+
             Long userId = userService.getCurrentUserEntity().getId();
             
             logger.info("Exporting PDF report for user {} from {} to {}", userId, startDate, endDate);
             
-            // TODO: Implement PDF export functionality
-            // This would require adding PDF generation library (like iText or FOP)
+            ReportResponse report = reportService.generateProgressReport(userId, startDate, endDate);
+            byte[] pdf = pdfReportService.render(report);
             
-            Map<String, String> response = new HashMap<>();
-            response.put("message", "PDF export functionality is not yet implemented");
-            response.put("reportUrl", "/reports/progress?startDate=" + startDate + "&endDate=" + endDate);
+            String filename = String.format("progress-report_%s_%s.pdf", startDate.toLocalDate(), endDate.toLocalDate());
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
             
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(pdf);
             
         } catch (Exception e) {
             logger.error("Error exporting PDF report: ", e);
